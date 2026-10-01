@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+﻿import { useQuery } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
 import { getQuote, getQuoteForAmountOut, toBigInt } from '@/lib/api'
 import { QUOTE_REFRESH_MS } from '@/lib/constants'
 import type { QuoteResult } from '@/lib/types'
@@ -53,4 +54,38 @@ export function useSwapQuote(params: QuoteParams) {
       return undefined
     },
   })
+}
+
+
+/** Returns true while the backend is still waking up from a cold start. */
+export function useBackendWarming() {
+  const [isWarming, setIsWarming] = useState(false)
+  const [warmed, setWarmed] = useState(false)
+
+  useEffect(() => {
+    if (warmed) return
+    let timer: ReturnType<typeof setTimeout>
+    const controller = new AbortController()
+
+    // After 3 seconds without a response, flip the warming flag so the UI can show a message
+    timer = setTimeout(() => setIsWarming(true), 3000)
+
+    fetch(`${import.meta.env.VITE_AGGREGATOR_URL ?? 'https://evm-api.deserialize.xyz'}/health`, {
+      method: 'GET',
+      signal: controller.signal,
+    })
+      .catch(() => {})
+      .finally(() => {
+        clearTimeout(timer)
+        setIsWarming(false)
+        setWarmed(true)
+      })
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [warmed])
+
+  return { isWarming, warmed }
 }

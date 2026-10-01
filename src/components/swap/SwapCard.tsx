@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+﻿import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { formatUnits } from 'viem'
@@ -8,7 +8,7 @@ import { listedTokens, TokenDialog } from '@/components/swap/TokenDialog'
 import { ReviewDialog } from '@/components/swap/ReviewDialog'
 import { TokenMark } from '@/components/TokenMark'
 import { useOpenWallet } from '@/components/wallet'
-import { useSwapQuote } from '@/hooks/useQuote'
+import { useSwapQuote, useBackendWarming } from '@/hooks/useQuote'
 import { useCustomTokens, useToken, useTokenPrice } from '@/hooks/useToken'
 import { friendlyError, partnerFeesFromEnv, toBigInt } from '@/lib/api'
 import { GAS_RESERVE, NATIVE_ETH, QUOTE_DEBOUNCE_MS } from '@/lib/constants'
@@ -51,6 +51,7 @@ export function SwapCard({
   const [picking, setPicking] = useState<Side | null>(null)
   const [slippage, setSlippage] = useState(() => readSettings().slippage)
   const [inverted, setInverted] = useState(false)
+  const { isWarming } = useBackendWarming()
   const [turns, setTurns] = useState(0)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [review, setReview] = useState<{ quote: QuoteResult; quotedAt: number; amountIn: bigint } | null>(null)
@@ -131,7 +132,7 @@ export function SwapCard({
       ? friendlyError(quote.error)
       : null
 
-  const refreshWarning = synced && quote.isError ? 'Couldn’t refresh the price. This is the last quote.' : null
+  const refreshWarning = synced && quote.isError ? 'Couldnâ€™t refresh the price. This is the last quote.' : null
 
   // Auto-populate the opposite field when quote arrives
   useEffect(() => {
@@ -286,7 +287,7 @@ export function SwapCard({
             isConnected
               ? sellBalance.value != null
                 ? formatTokenAmount(sellBalance.value, sellMeta.token.decimals)
-                : '…'
+                : 'â€¦'
               : null
           }
           onMax={isConnected && sellBalance.value != null ? fillMax : undefined}
@@ -317,7 +318,7 @@ export function SwapCard({
             isConnected
               ? buyBalance.value != null
                 ? formatTokenAmount(buyBalance.value, buyMeta.token.decimals)
-                : '…'
+                : 'â€¦'
               : null
           }
         />
@@ -346,7 +347,7 @@ export function SwapCard({
             <dl className="space-y-2 border-t border-white/8 py-3 text-sm">
               <Detail
                 label="Price impact"
-                value={impact == null ? '—' : `${impact.toFixed(2)}%`}
+                value={impact == null ? 'â€”' : `${impact.toFixed(2)}%`}
                 tone={impact ? (impact > 5 ? 'bad' : impact > 2 ? 'warn' : undefined) : undefined}
               />
               <Detail label="Route" value={<RouteSummary quote={visible} sell={sellMeta.token} buy={buyMeta.token} />} />
@@ -355,7 +356,7 @@ export function SwapCard({
                 value={
                   amountOutFromQuote
                     ? `${formatUnitsTrim(applySlippage(amountOutFromQuote.toString(), slippage), buyMeta.token.decimals)} ${buyMeta.token.symbol}`
-                    : '—'
+                    : 'â€”'
                 }
               />
               <Detail label="Slippage tolerance" value={`${slippage}%`} />
@@ -412,7 +413,7 @@ export function SwapCard({
             : 'bg-accent text-accent-ink hover:brightness-105 active:scale-[0.99]',
         )}
       >
-        {switching && intent.action === 'switch' ? 'Switching to Base…' : intent.label}
+        {switching && intent.action === 'switch' ? 'Switching to Baseâ€¦' : intent.label}
       </button>
 
       <p className="sr-only" aria-live="polite">
@@ -422,6 +423,13 @@ export function SwapCard({
             ? 'Finding the best price'
             : ''}
       </p>
+
+            {isWarming ? (
+        <div role="status" className="flex items-center gap-2 rounded-xl bg-warn/10 px-3 py-2.5 text-sm text-warn">
+          <span className="size-3 shrink-0 animate-spin rounded-full border-2 border-warn/30 border-t-warn" aria-hidden="true" />
+          Connecting to aggregator — first load may take up to 30s while the server wakes up…
+        </div>
+      ) : null}
 
       {picking ? (
         <TokenDialog
@@ -490,7 +498,7 @@ function SwapInputCard({
             ) : null}
           </span>
         ) : (
-          <span>Balance —</span>
+          <span>Balance â€”</span>
         )}
       </div>
       <div className="mt-2 flex min-w-0 items-center gap-3">
@@ -527,7 +535,7 @@ function TokenPill({ token, loading, onClick }: { token: TokenInfo; loading: boo
       className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-white/8 py-1 pr-3 pl-1.5 hover:bg-white/12 active:scale-95 transition-all"
     >
       <TokenMark address={token.address} symbol={loading ? '?' : token.symbol} size={28} />
-      <span className="font-medium">{loading ? '…' : token.symbol}</span>
+      <span className="font-medium">{loading ? 'â€¦' : token.symbol}</span>
       <IconChevron className="size-4 text-muted" />
     </button>
   )
@@ -561,9 +569,9 @@ function RouteSummary({ quote, sell, buy }: { quote: QuoteResult; sell: TokenInf
   const fees = [...new Set(hops.map((hop) => formatFeeTier(hop.fee)))]
   return (
     <span>
-      <span className="block">{symbols.join(' → ')}</span>
+      <span className="block">{symbols.join(' â†’ ')}</span>
       <span className="block text-xs text-muted">
-        {venues.join(' · ')} · fee {fees.join(', ')}
+        {venues.join(' Â· ')} Â· fee {fees.join(', ')}
       </span>
     </span>
   )
@@ -595,3 +603,4 @@ function parsedUsd(amount: string, usd: number | null): string {
   if (!amount || amount === '.' || amount === '0' || usd == null) return ''
   return formatUsd(usd)
 }
+
