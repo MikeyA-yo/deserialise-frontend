@@ -19,7 +19,7 @@ function ActivityPage() {
     <div className="mx-auto max-w-2xl pb-10">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Activity</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Activity</h1>
           <p className="mt-2 text-sm text-muted">Swaps confirmed in this browser. Nothing is stored on a server.</p>
         </div>
         {items.length > 0 ? (

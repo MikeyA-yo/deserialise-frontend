@@ -25,19 +25,19 @@ export function AppShell() {
           Skip to content
         </a>
         <header className="sticky top-0 z-40 border-b border-white/8 bg-canvas/75 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-            <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
-              <Mark className="size-8" />
+          <div className="mx-auto flex max-w-6xl items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3">
+            <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight shrink-0">
+              <Mark className="size-7 sm:size-8" />
               <span className="hidden sm:inline">Deserialize</span>
             </Link>
-            <nav className="flex items-center gap-1 rounded-full bg-white/5 p-1" aria-label="Primary">
+            <nav className="flex items-center gap-0.5 sm:gap-1 rounded-full bg-white/5 p-0.5 sm:p-1" aria-label="Primary">
               {NAV.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
                   activeOptions={{ exact: item.exact }}
-                  activeProps={{ className: 'rounded-full bg-white/10 px-2.5 py-1.5 text-sm text-ink sm:px-3' }}
-                  inactiveProps={{ className: 'rounded-full px-2.5 py-1.5 text-sm text-muted hover:text-ink sm:px-3' }}
+                  activeProps={{ className: 'rounded-full bg-white/10 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-ink' }}
+                  inactiveProps={{ className: 'rounded-full px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-muted hover:text-ink' }}
                 >
                   {item.label}
                 </Link>

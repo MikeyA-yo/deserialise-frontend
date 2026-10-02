@@ -3,7 +3,7 @@ import { createConfig, http } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { fallback } from 'viem'
 
-const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '3a8170812b534d0ff9d794f19a901d64'
 const customRpc = import.meta.env.VITE_BASE_RPC_URL
 const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://deserialize.xyz'
 
@@ -13,22 +13,18 @@ export const wagmiConfig = createConfig({
     injected({ shimDisconnect: true }),
     coinbaseWallet({
       appName: 'Deserialize',
-      preference: 'all',
+      preference: { options: 'all' },
     }),
-    ...(projectId
-      ? [
-          walletConnect({
-            projectId,
-            showQrModal: true,
-            metadata: {
-              name: 'Deserialize',
-              description: 'Swap on Base at the best routed price.',
-              url: appUrl,
-              icons: [`${appUrl}/favicon.svg`],
-            },
-          }),
-        ]
-      : []),
+    walletConnect({
+      projectId,
+      showQrModal: true,
+      metadata: {
+        name: 'Deserialize',
+        description: 'Swap on Base at the best routed price.',
+        url: appUrl,
+        icons: [`${appUrl}/favicon.svg`],
+      },
+    }),
   ],
   transports: {
     [base.id]: customRpc

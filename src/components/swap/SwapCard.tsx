@@ -474,11 +474,11 @@ function SwapInputCard({
   onMax?: () => void
   maxTitle?: string
 }) {
-  const amountSize = amount.length > 14 ? 'text-2xl' : amount.length > 9 ? 'text-3xl' : 'text-[2.5rem]'
+  const amountSize = amount.length > 14 ? 'text-xl sm:text-2xl' : amount.length > 9 ? 'text-2xl sm:text-3xl' : 'text-[1.85rem] sm:text-[2.5rem]'
 
   return (
-    <div className="min-w-0 rounded-[22px] bg-black/25 px-4 py-4 border border-transparent focus-within:border-white/10 transition-colors">
-      <div className="flex items-center justify-between text-sm text-muted">
+    <div className="min-w-0 rounded-[20px] sm:rounded-[22px] bg-black/25 px-3.5 py-3.5 sm:px-4 sm:py-4 border border-transparent focus-within:border-white/10 transition-colors">
+      <div className="flex items-center justify-between text-xs sm:text-sm text-muted">
         <label htmlFor={id}>{label}</label>
         {balance != null ? (
           <span className="inline-flex items-center gap-2">

@@ -90,7 +90,7 @@ export function Modal({
         tabIndex={-1}
         onMouseDown={(event) => event.stopPropagation()}
         className={cn(
-          'max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl border border-white/10 bg-surface shadow-[0_30px_80px_rgba(0,0,0,0.45)] outline-none sm:rounded-3xl',
+          'max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl border border-white/10 bg-surface pb-[env(safe-area-inset-bottom)] shadow-[0_30px_80px_rgba(0,0,0,0.45)] outline-none sm:rounded-3xl sm:pb-0',
           wide ? 'sm:max-w-md' : 'sm:max-w-[420px]',
         )}
       >

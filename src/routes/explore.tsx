@@ -37,7 +37,7 @@ function ExplorePage() {
 
   return (
     <div className="mx-auto max-w-3xl pb-10">
-      <h1 className="text-3xl font-semibold tracking-tight">Explore</h1>
+      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Explore</h1>
       <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
         Prices for tokens routed on Base. Paste any contract address to open it.
       </p>
