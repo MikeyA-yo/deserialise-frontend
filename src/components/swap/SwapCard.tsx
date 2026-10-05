@@ -6,6 +6,7 @@ import { IconArrowDown, IconChevron } from '@/components/icons'
 import { SettingsMenu } from '@/components/swap/SettingsMenu'
 import { listedTokens, TokenDialog } from '@/components/swap/TokenDialog'
 import { ReviewDialog } from '@/components/swap/ReviewDialog'
+import { RouteVisualizer } from '@/components/swap/RouteVisualizer'
 import { TokenMark } from '@/components/TokenMark'
 import { useOpenWallet } from '@/components/wallet'
 import { useSwapQuote } from '@/hooks/useQuote'
@@ -17,19 +18,17 @@ import {
   amountToUsd,
   applySlippage,
   executionRate,
-  formatFeeTier,
   formatRate,
   formatTokenAmount,
   formatUnitsTrim,
   formatUsd,
   priceImpact,
   sanitizeAmount,
-  shortAddress,
   tryParseAmount,
 } from '@/lib/format'
 import { readSettings, rememberToken, writeSettings } from '@/lib/storage'
 import { describeSwap } from '@/lib/swap-intent'
-import { dexLabel, findKnown, isEthFamily, isNative, sameToken } from '@/lib/tokens'
+import { isEthFamily, isNative, sameToken } from '@/lib/tokens'
 import type { QuoteResult, TokenInfo } from '@/lib/types'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useHolding } from '@/hooks/useHolding'
@@ -343,30 +342,40 @@ export function SwapCard({
             </span>
           </div>
           {detailsOpen ? (
-            <dl className="space-y-2 border-t border-white/8 py-3 text-sm">
-              <Detail
-                label="Price impact"
-                value={impact == null ? '—' : `${impact.toFixed(2)}%`}
-                tone={impact ? (impact > 5 ? 'bad' : impact > 2 ? 'warn' : undefined) : undefined}
-              />
-              <Detail label="Route" value={<RouteSummary quote={visible} sell={sellMeta.token} buy={buyMeta.token} />} />
-              <Detail
-                label="Minimum output"
-                value={
-                  amountOutFromQuote
-                    ? `${formatUnitsTrim(applySlippage(amountOutFromQuote.toString(), slippage), buyMeta.token.decimals)} ${buyMeta.token.symbol}`
-                    : '—'
-                }
-              />
-              <Detail label="Slippage tolerance" value={`${slippage}%`} />
-              {partnerFee ? (
+            <div className="border-t border-white/8 pt-3 space-y-3">
+              <dl className="space-y-2 text-sm">
                 <Detail
-                  label="Integrator fee"
-                  value={`${partnerFee.fee}%`}
-                  tone="warn"
+                  label="Price impact"
+                  value={impact == null ? '—' : `${impact.toFixed(2)}%`}
+                  tone={impact ? (impact > 5 ? 'bad' : impact > 2 ? 'warn' : undefined) : undefined}
                 />
-              ) : null}
-            </dl>
+                <Detail
+                  label="Minimum output"
+                  value={
+                    amountOutFromQuote
+                      ? `${formatUnitsTrim(applySlippage(amountOutFromQuote.toString(), slippage), buyMeta.token.decimals)} ${buyMeta.token.symbol}`
+                      : '—'
+                  }
+                />
+                <Detail label="Slippage tolerance" value={`${slippage}%`} />
+                {partnerFee ? (
+                  <Detail
+                    label="Integrator fee"
+                    value={`${partnerFee.fee}%`}
+                    tone="warn"
+                  />
+                ) : null}
+              </dl>
+
+              {/* KyberSwap Order Routing Visualization */}
+              <div className="pt-1">
+                <RouteVisualizer
+                  quote={visible.quote}
+                  sell={sellMeta.token}
+                  buy={buyMeta.token}
+                />
+              </div>
+            </div>
           ) : null}
         </div>
       ) : null}
@@ -552,29 +561,7 @@ function Detail({
   )
 }
 
-function RouteSummary({ quote, sell, buy }: { quote: QuoteResult; sell: TokenInfo; buy: TokenInfo }) {
-  const hops = quote.quote.routePlan
-  if (hops.length === 0) return <span>Best available pool</span>
-  const symbols = [symbolFor(hops[0]?.tokenA ?? sell.address, sell, buy)]
-  for (const hop of hops) symbols.push(symbolFor(hop.tokenB, sell, buy))
-  const venues = [...new Set(hops.map((hop) => dexLabel(hop.dexId)))]
-  const fees = [...new Set(hops.map((hop) => formatFeeTier(hop.fee)))]
-  return (
-    <span>
-      <span className="block">{symbols.join(' → ')}</span>
-      <span className="block text-xs text-muted">
-        {venues.join(' · ')} · fee {fees.join(', ')}
-      </span>
-    </span>
-  )
-}
 
-function symbolFor(address: string, sell: TokenInfo, buy: TokenInfo): string {
-  if (isNative(address)) return 'ETH'
-  if (sameToken(address, sell.address)) return sell.symbol
-  if (sameToken(address, buy.address)) return buy.symbol
-  return findKnown(address)?.symbol ?? shortAddress(address)
-}
 
 function Freshness({ updatedAt, fetching }: { updatedAt: number; fetching: boolean }) {
   const [now, setNow] = useState(() => Date.now())

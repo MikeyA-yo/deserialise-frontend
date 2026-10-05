@@ -16,6 +16,33 @@ export type RouteHop = {
   fee: number
 }
 
+export type QuoteRouteToken = {
+  address: string
+  symbol: string | null
+  decimals: number | null
+}
+
+export type QuoteRouteHop = {
+  hop: number
+  dexId: string
+  dexName: string
+  poolAddress: string
+  fee: number
+  tokenIn: QuoteRouteToken
+  tokenOut: QuoteRouteToken
+  amountIn: string
+  amountOut: string
+  amountInFormatted: string | null
+  amountOutFormatted: string | null
+  percent: number
+}
+
+export type QuoteRoute = {
+  path: QuoteRouteToken[]
+  hops: QuoteRouteHop[]
+  summary: string
+}
+
 export type NormalizedQuote = {
   tokenA: string
   tokenB: string
@@ -23,6 +50,7 @@ export type NormalizedQuote = {
   amountOut: string
   tokenPrice: string | null
   routePlan: RouteHop[]
+  route?: QuoteRoute
   dexId: string
   isNativeIn: boolean
   isNativeOut: boolean

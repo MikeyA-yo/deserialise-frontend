@@ -1,7 +1,16 @@
 import { getAddress, hexToBigInt, isAddress, isHex } from 'viem'
 import { API_BASE, CHAIN_KEY, NATIVE_ETH, SWAP_PROXY, WETH } from '@/lib/constants'
 import { isNative, toApiAddress } from '@/lib/tokens'
-import type { NormalizedQuote, QuoteResult, RouteHop, SwapTransaction, TokenInfo } from '@/lib/types'
+import type {
+  NormalizedQuote,
+  QuoteResult,
+  QuoteRoute,
+  QuoteRouteHop,
+  QuoteRouteToken,
+  RouteHop,
+  SwapTransaction,
+  TokenInfo,
+} from '@/lib/types'
 
 export class ApiError extends Error {
   status: number
@@ -199,6 +208,74 @@ function asHop(value: unknown): RouteHop | null {
   }
 }
 
+function asRoute(value: unknown): QuoteRoute | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const r = value as Record<string, unknown>
+  if (!Array.isArray(r.hops) || !Array.isArray(r.path)) return undefined
+
+  const path: QuoteRouteToken[] = []
+  for (const item of r.path) {
+    if (item && typeof item === 'object') {
+      const p = item as Record<string, unknown>
+      if (typeof p.address === 'string') {
+        path.push({
+          address: p.address,
+          symbol: typeof p.symbol === 'string' ? p.symbol : null,
+          decimals: typeof p.decimals === 'number' ? p.decimals : null,
+        })
+      }
+    }
+  }
+
+  const hops: QuoteRouteHop[] = []
+  for (const item of r.hops) {
+    if (item && typeof item === 'object') {
+      const h = item as Record<string, unknown>
+      const tokenIn = h.tokenIn && typeof h.tokenIn === 'object' ? (h.tokenIn as Record<string, unknown>) : null
+      const tokenOut = h.tokenOut && typeof h.tokenOut === 'object' ? (h.tokenOut as Record<string, unknown>) : null
+      if (tokenIn && tokenOut && typeof tokenIn.address === 'string' && typeof tokenOut.address === 'string') {
+        hops.push({
+          hop: typeof h.hop === 'number' ? h.hop : hops.length + 1,
+          dexId: typeof h.dexId === 'string' ? h.dexId : 'UNKNOWN',
+          dexName: typeof h.dexName === 'string' ? h.dexName : 'DEX Pool',
+          poolAddress: typeof h.poolAddress === 'string' ? h.poolAddress : '',
+          fee: typeof h.fee === 'number' ? h.fee : 0,
+          tokenIn: {
+            address: tokenIn.address,
+            symbol: typeof tokenIn.symbol === 'string' ? tokenIn.symbol : null,
+            decimals: typeof tokenIn.decimals === 'number' ? tokenIn.decimals : null,
+          },
+          tokenOut: {
+            address: tokenOut.address,
+            symbol: typeof tokenOut.symbol === 'string' ? tokenOut.symbol : null,
+            decimals: typeof tokenOut.decimals === 'number' ? tokenOut.decimals : null,
+          },
+          amountIn: typeof h.amountIn === 'string' || typeof h.amountIn === 'number' ? String(h.amountIn) : '0',
+          amountOut: typeof h.amountOut === 'string' || typeof h.amountOut === 'number' ? String(h.amountOut) : '0',
+          amountInFormatted:
+            typeof h.amountInFormatted === 'string' || typeof h.amountInFormatted === 'number'
+              ? String(h.amountInFormatted)
+              : null,
+          amountOutFormatted:
+            typeof h.amountOutFormatted === 'string' || typeof h.amountOutFormatted === 'number'
+              ? String(h.amountOutFormatted)
+              : null,
+          percent: typeof h.percent === 'number' ? h.percent : 100,
+        })
+      }
+    }
+  }
+
+  return {
+    path,
+    hops,
+    summary:
+      typeof r.summary === 'string'
+        ? r.summary
+        : path.map((p) => p.symbol ?? p.address.slice(0, 6)).join(' → '),
+  }
+}
+
 function normalizeQuote(raw: Record<string, unknown>): NormalizedQuote {
   const route = Array.isArray(raw.routePlan) ? raw.routePlan.map(asHop).filter((hop): hop is RouteHop => !!hop) : []
   const tokenPrice = raw.tokenPrice
@@ -209,6 +286,7 @@ function normalizeQuote(raw: Record<string, unknown>): NormalizedQuote {
     amountOut: integerString(raw.amountOut, 'amount out'),
     tokenPrice: typeof tokenPrice === 'string' || typeof tokenPrice === 'number' ? String(tokenPrice) : null,
     routePlan: route,
+    route: asRoute(raw.route),
     dexId: typeof raw.dexId === 'string' ? raw.dexId : 'ALL_BASE',
     isNativeIn: Boolean(raw.isNativeIn),
     isNativeOut: Boolean(raw.isNativeOut),

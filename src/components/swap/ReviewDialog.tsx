@@ -4,6 +4,7 @@ import { usePublicClient, useSendTransaction, useWalletClient } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { formatUnits } from 'viem'
 import { Modal } from '@/components/Modal'
+import { RouteVisualizer } from '@/components/swap/RouteVisualizer'
 import { TokenMark } from '@/components/TokenMark'
 import { useTokenPrice } from '@/hooks/useToken'
 import { buildSwap, friendlyError, getQuote, partnerFeesFromEnv } from '@/lib/api'
@@ -314,6 +315,11 @@ export function ReviewDialog({
           ) : null}
         </dl>
 
+        {/* KyberSwap Order Routing Flow */}
+        <div className="mt-3">
+          <RouteVisualizer quote={live.quote} sell={sell} buy={buy} />
+        </div>
+
         {previewState === 'ready' && needsApproval ? (
           <p className="mt-3 text-xs leading-5 text-muted">
             {sell.symbol} needs a one-time approval for this amount before the swap can be sent.
@@ -418,6 +424,9 @@ function Row({
 }
 
 function RouteText({ quote, sell, buy }: { quote: QuoteResult; sell: TokenInfo; buy: TokenInfo }) {
+  if (quote.quote.route?.summary) {
+    return <span className="block">{quote.quote.route.summary}</span>
+  }
   const hops = quote.quote.routePlan
   if (hops.length === 0) return <span>Direct</span>
   const symbols = [labelFor(hops[0]?.tokenA ?? sell.address, sell, buy)]

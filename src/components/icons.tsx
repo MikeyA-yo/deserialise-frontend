@@ -149,3 +149,55 @@ export function IconPhone(props: IconProps) {
   )
 }
 
+export function IconUniswap({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} fill="none" aria-hidden="true">
+      <rect width="32" height="32" rx="8" fill="#FF007A" />
+      <path
+        d="M23 17.5C22.2 20.5 19.3 22.8 16 22.8C12.2 22.8 9.2 19.8 9.2 16C9.2 12.5 11.8 9.6 15.2 9.2L15.6 11.2C13 11.6 11.2 13.6 11.2 16C11.2 18.7 13.3 20.8 16 20.8C18.2 20.8 20.1 19.3 20.8 17.2L23 17.5Z"
+        fill="white"
+      />
+      <circle cx="21" cy="11.5" r="2.5" fill="white" />
+    </svg>
+  )
+}
+
+export function IconPancakeSwap({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} fill="none" aria-hidden="true">
+      <rect width="32" height="32" rx="8" fill="#1FC7D4" />
+      <path
+        d="M9 13.5C9 11.5 12.1 10 16 10C19.9 10 23 11.5 23 13.5C23 15.5 19.9 17 16 17C12.1 17 9 15.5 9 13.5Z"
+        fill="#7645D9"
+      />
+      <path
+        d="M9 15.5C9 17.5 12.1 19 16 19C19.9 19 23 17.5 23 15.5V17C23 19 19.9 20.5 16 20.5C12.1 20.5 9 19 9 17V15.5Z"
+        fill="white"
+      />
+      <path
+        d="M9 19C9 21 12.1 22.5 16 22.5C19.9 22.5 23 21 23 19V20.5C23 22.5 19.9 24 16 24C12.1 24 9 22.5 9 20.5V19Z"
+        fill="white"
+      />
+    </svg>
+  )
+}
+
+export function IconAerodrome({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} fill="none" aria-hidden="true">
+      <rect width="32" height="32" rx="8" fill="#0052FF" />
+      <path d="M8.5 16L23.5 9.5L18.5 22.5L15 17.5L8.5 16Z" fill="white" />
+    </svg>
+  )
+}
+
+export function IconRoute(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="6" cy="19" r="3" />
+      <circle cx="18" cy="5" r="3" />
+      <path d="M12 19h4.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H12" />
+    </svg>
+  )
+}
+
