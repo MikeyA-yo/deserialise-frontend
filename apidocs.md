@@ -40,8 +40,8 @@ The aggregator routes swaps through an on-chain proxy pattern that interacts wit
 
 ### Deployed Addresses on Base:
 
-- **SwapProxy:** `0xADb0018bCF10b7dD84B7C3e2D92889185DA41f45`
-- **AdapterTracker:** `0xf0c3D4dE61d78742Eb51dffA29A109aCE473892F`
+- **SwapProxy:** `0x2B7b17165aAe7Ce6cC390920282473720Db8b30b`
+- **AdapterTracker:** `0xbC9eB41b40be480541b54A4189bB82c4340378a7`
 - **Native ETH Placeholder:** `0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE`
 - **Wrapped Ether (WETH):** `0x4200000000000000000000000000000000000006`
 
@@ -383,7 +383,7 @@ Constructs the raw EVM transaction array (`transactions`) for the user's wallet 
   "transactions": [
     {
       "from": "0xYourUserWalletAddress",
-      "to": "0xADb0018bCF10b7dD84B7C3e2D92889185DA41f45",
+      "to": "0x2B7b17165aAe7Ce6cC390920282473720Db8b30b",
       "data": "0x...",
       "value": "1000000000000000000"
     }
@@ -391,7 +391,7 @@ Constructs the raw EVM transaction array (`transactions`) for the user's wallet 
 }
 ```
 
-> **Note on Approvals:** If `tokenA` is an ERC-20 token and the user's current allowance for `SwapProxy` is insufficient, the API automatically prepends an ERC-20 `approve(0xADb0018bCF10b7dD84B7C3e2D92889185DA41f45, amountIn)` transaction to `transactions[0]`.
+> **Note on Approvals:** If `tokenA` is an ERC-20 token and the user's current allowance for `SwapProxy` is insufficient, the API automatically prepends an ERC-20 `approve(0x2B7b17165aAe7Ce6cC390920282473720Db8b30b, amountIn)` transaction to `transactions[0]`.
 
 ---
 

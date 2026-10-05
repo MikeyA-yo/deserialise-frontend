@@ -4,8 +4,9 @@ export const CHAIN_KEY = 'base'
 export const NATIVE_ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 
 export const WETH = '0x4200000000000000000000000000000000000006'
-export const SWAP_PROXY = '0xADb0018bCF10b7dD84B7C3e2D92889185DA41f45'
-export const ADAPTER_TRACKER = '0xf0c3D4dE61d78742Eb51dffA29A109aCE473892F'
+// Base contracts redeployed Oct 5, 2026 (MultiRouteSwapV2 proxy + AdapterTracker)
+export const SWAP_PROXY = '0x2B7b17165aAe7Ce6cC390920282473720Db8b30b'
+export const ADAPTER_TRACKER = '0xbC9eB41b40be480541b54A4189bB82c4340378a7'
 
 export const BASESCAN = 'https://basescan.org'
 
