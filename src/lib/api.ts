@@ -453,6 +453,10 @@ export function friendlyError(error: unknown): string {
     if (/insufficient funds/i.test(error.message)) {
       return 'Not enough ETH to cover the amount and network fee.'
     }
+    // Wallet RPC still a block behind a just-confirmed approval: the swap reused its nonce
+    if (/nonce too low|nonce has already been used|nonce expired|invalid nonce/i.test(error.message)) {
+      return 'Your wallet had not caught up with the approval yet. The approval went through, so tap the button again to send the swap.'
+    }
     const cleaned = error.message.replace(/^Error:\s*/, '')
     return cleaned.length > 240 ? `${cleaned.slice(0, 240)}…` : cleaned
   }

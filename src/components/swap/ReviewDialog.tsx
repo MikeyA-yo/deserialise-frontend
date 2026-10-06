@@ -164,32 +164,55 @@ export function ReviewDialog({
       })
 
       let hash: `0x${string}` | null = null
+      let approvedThisRun = false
       for (let index = 0; index < txs.length; index += 1) {
         const tx = txs[index]
         if (!tx) continue
         const step = txs.length > 1 ? `Step ${index + 1} of ${txs.length}. ` : ''
-        setStatus({
-          kind: 'working',
-          label:
-            tx.kind === 'approve'
-              ? `${step}Approve ${sell.symbol} in your wallet.`
-              : `${step}Confirm the swap in your wallet.`,
-        })
-        hash = await sendTransactionAsync({
-          to: tx.to,
-          data: tx.data,
-          value: tx.value,
-          chainId: base.id,
-        })
+        const prompt =
+          tx.kind === 'approve'
+            ? `${step}Approve ${sell.symbol} in your wallet.`
+            : `${step}Confirm the swap in your wallet.`
+        setStatus({ kind: 'working', label: prompt })
+
+        // Right after an approval the wallet's own RPC node can still be a block behind ours:
+        // it then signs the swap with the approval's nonce ("nonce too low") or fails gas
+        // estimation because it does not see the new allowance yet. Give it time and retry.
+        const maxAttempts = tx.kind === 'swap' && approvedThisRun ? 3 : 1
+        for (let attempt = 1; ; attempt += 1) {
+          try {
+            hash = await sendTransactionAsync({
+              to: tx.to,
+              data: tx.data,
+              value: tx.value,
+              chainId: base.id,
+            })
+            break
+          } catch (error) {
+            if (attempt >= maxAttempts || !isRetryableAfterApproval(error)) throw error
+            setStatus({
+              kind: 'working',
+              label: 'Your wallet is still catching up with the approval. Retrying the swap…',
+            })
+            await sleep(2_000 * attempt)
+            setStatus({ kind: 'working', label: `${prompt} (retry ${attempt} of ${maxAttempts - 1})` })
+          }
+        }
+
         setStatus({
           kind: 'working',
           label: tx.kind === 'approve' ? 'Waiting for the approval to confirm…' : 'Waiting for the swap to confirm…',
           hash,
         })
-        const receipt = await publicClient.waitForTransactionReceipt({ hash })
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
+          // An extra confirmation after an approval lets the wallet's RPC see it before the swap
+          confirmations: tx.kind === 'approve' ? 2 : 1,
+        })
         if (receipt.status !== 'success') {
           throw new Error(tx.kind === 'approve' ? 'The approval reverted.' : 'The swap reverted.')
         }
+        if (tx.kind === 'approve') approvedThisRun = true
       }
       if (!hash) throw new Error('The wallet did not return a transaction.')
 
@@ -455,4 +478,33 @@ function formatFee(wei: bigint, ethUsd: number | null): string {
   if (ethUsd == null) return `${eth} ETH`
   const usd = Number(formatUnits(wei, 18)) * ethUsd
   return `${eth} ETH · ${formatUsd(usd)}`
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** Message, shortMessage and details of an error and its causes (viem nests the RPC reason) */
+function errorText(error: unknown): string {
+  const parts: string[] = []
+  let current: unknown = error
+  for (let depth = 0; current && depth < 6; depth += 1) {
+    const e = current as { message?: unknown; shortMessage?: unknown; details?: unknown; cause?: unknown }
+    for (const part of [e.message, e.shortMessage, e.details]) {
+      if (typeof part === 'string') parts.push(part)
+    }
+    current = e.cause
+  }
+  return parts.join(' | ')
+}
+
+/**
+ * Whether sending the swap right after an approval should be retried. The user rejecting the
+ * request or lacking funds is final; anything else here is almost always the wallet's RPC node
+ * lagging behind the approval (stale nonce, or gas estimation without the new allowance).
+ */
+function isRetryableAfterApproval(error: unknown): boolean {
+  const text = errorText(error)
+  if (/user rejected|user denied|rejected the request|denied transaction|insufficient funds/i.test(text)) return false
+  return true
 }
