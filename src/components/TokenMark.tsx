@@ -1,15 +1,39 @@
+import { useState } from 'react'
 import { tokenHue } from '@/lib/tokens'
 
 export function TokenMark({
   address,
   symbol,
   size = 28,
+  logoURI,
 }: {
   address: string
   symbol: string
   size?: number
+  /** Optional token logo; falls back to the generated mark if missing or it fails to load */
+  logoURI?: string | null
 }) {
+  const [logoFailed, setLogoFailed] = useState(false)
   const eth = symbol === 'ETH' || symbol === 'WETH'
+
+  if (logoURI && !logoFailed && !eth) {
+    return (
+      <img
+        src={logoURI}
+        alt=""
+        aria-hidden="true"
+        width={size}
+        height={size}
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onError={() => setLogoFailed(true)}
+        className="inline-block shrink-0 rounded-full bg-white/8 object-cover shadow-[inset_0_0_0_1px_rgba(255,255,255,0.14)]"
+        style={{ width: size, height: size }}
+      />
+    )
+  }
+
   const hue = tokenHue(address)
   return (
     <span

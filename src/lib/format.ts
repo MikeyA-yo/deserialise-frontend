@@ -73,6 +73,17 @@ export function formatPrice(value: number | null | undefined): string {
   }).format(value)
 }
 
+/** $1.2B / $34.5M / $812K style, for market cap and volume */
+export function formatCompactUsd(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '—'
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    notation: 'compact',
+    maximumFractionDigits: value >= 1000 ? 1 : 2,
+  }).format(value)
+}
+
 export function formatPercent(value: number): string {
   const abs = Math.abs(value)
   if (abs > 0 && abs < 0.01) return `${value < 0 ? '-' : ''}<0.01%`

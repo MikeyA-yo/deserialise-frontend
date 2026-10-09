@@ -26,7 +26,12 @@ function endpoint(path: string): string {
   return `${API_BASE}/${CHAIN_KEY}${path}`
 }
 
-async function request(path: string, init: RequestInit = {}, timeoutMs = 12_000): Promise<unknown> {
+async function request(
+  path: string,
+  init: RequestInit = {},
+  timeoutMs = 12_000,
+  timeoutMessage = 'The aggregator took too long to answer.',
+): Promise<unknown> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort('timeout'), timeoutMs)
   const parent = init.signal
@@ -52,7 +57,7 @@ async function request(path: string, init: RequestInit = {}, timeoutMs = 12_000)
   } catch (error) {
     if (error instanceof ApiError) throw error
     if (controller.signal.aborted && controller.signal.reason === 'timeout') {
-      throw new ApiError('The aggregator took too long to answer.')
+      throw new ApiError(timeoutMessage)
     }
     if (parent?.aborted) throw error
     throw new ApiError('Can’t reach the Deserialize aggregator. Check that it is running and the API URL is set.')
@@ -108,6 +113,101 @@ export async function getTokenPrice(address: string, signal?: AbortSignal): Prom
   const price = typeof result === 'number' ? result : typeof result === 'string' ? Number(result) : NaN
   if (!Number.isFinite(price) || price < 0) throw new ApiError('No USD price for this token.')
   return price
+}
+
+// ---------- Explore: token list and market data (cached 5 min on the aggregator) ----------
+
+export type ListedToken = TokenInfo & {
+  logoURI?: string | null
+  /** In the aggregator's routing graph: quotes are fast */
+  indexed?: boolean
+}
+
+export type TokenMarket = {
+  address: string
+  symbol: string | null
+  name: string | null
+  decimals: number | null
+  logoURI: string | null
+  priceUsd: number | null
+  priceChange24h: number | null
+  volume24hUsd: number | null
+  marketCapUsd: number | null
+  fdvUsd: number | null
+  liquidityUsd: number | null
+  updatedAt: number
+}
+
+export type TrendingToken = TokenMarket & { poolName: string; dex: string | null }
+
+/** Max addresses per /tokens/market call (enforced by the aggregator) */
+export const MARKET_BATCH_SIZE = 100
+
+/** Every known token on the chain (~2,850 on Base): public token list + curated + routable tokens */
+export async function getAllTokens(signal?: AbortSignal): Promise<ListedToken[]> {
+  const body = unwrap(await request('/tokens', { signal }, 30_000))
+  const list = Array.isArray(body.result) ? body.result : []
+  const tokens: ListedToken[] = []
+  for (const item of list) {
+    const t = asRecord(item)
+    if (!t || typeof t.address !== 'string' || !isAddress(t.address)) continue
+    if (typeof t.symbol !== 'string' || typeof t.decimals !== 'number') continue
+    tokens.push({
+      address: getAddress(t.address),
+      symbol: t.symbol.slice(0, 20),
+      name: typeof t.name === 'string' && t.name ? t.name.slice(0, 64) : t.symbol,
+      decimals: t.decimals,
+      verified: t.verified === true,
+      indexed: t.indexed === true,
+      logoURI: typeof t.logoURI === 'string' ? t.logoURI : null,
+    })
+  }
+  return tokens
+}
+
+function toMarket(value: unknown): TokenMarket | null {
+  const m = asRecord(value)
+  if (!m || typeof m.address !== 'string') return null
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+  return {
+    address: m.address,
+    symbol: typeof m.symbol === 'string' ? m.symbol : null,
+    name: typeof m.name === 'string' ? m.name : null,
+    decimals: n(m.decimals),
+    logoURI: typeof m.logoURI === 'string' ? m.logoURI : null,
+    priceUsd: n(m.priceUsd),
+    priceChange24h: n(m.priceChange24h),
+    volume24hUsd: n(m.volume24hUsd),
+    marketCapUsd: n(m.marketCapUsd),
+    fdvUsd: n(m.fdvUsd),
+    liquidityUsd: n(m.liquidityUsd),
+    updatedAt: n(m.updatedAt) ?? Date.now(),
+  }
+}
+
+/** Price, 24h change, volume and market cap for up to MARKET_BATCH_SIZE tokens, keyed by lowercase address */
+export async function getTokenMarkets(addresses: string[], signal?: AbortSignal): Promise<Record<string, TokenMarket | null>> {
+  const unique = [...new Set(addresses.map((a) => a.toLowerCase()))].slice(0, MARKET_BATCH_SIZE)
+  if (unique.length === 0) return {}
+  const body = unwrap(await request(`/tokens/market?addresses=${unique.join(',')}`, { signal }, 30_000))
+  const result = asRecord(body.result) ?? {}
+  const out: Record<string, TokenMarket | null> = {}
+  for (const address of unique) out[address] = toMarket(result[address])
+  return out
+}
+
+/** Tokens from the chain's trending pools, with market data */
+export async function getTrendingTokens(signal?: AbortSignal): Promise<TrendingToken[]> {
+  const body = unwrap(await request('/tokens/trending', { signal }, 30_000))
+  const list = Array.isArray(body.result) ? body.result : []
+  const out: TrendingToken[] = []
+  for (const item of list) {
+    const market = toMarket(item)
+    const r = asRecord(item)
+    if (!market || !isAddress(market.address) || !market.symbol) continue
+    out.push({ ...market, poolName: typeof r?.poolName === 'string' ? r.poolName : '', dex: typeof r?.dex === 'string' ? r.dex : null })
+  }
+  return out
 }
 
 export async function getTokenDetails(address: string, signal?: AbortSignal): Promise<TokenInfo> {
@@ -293,6 +393,10 @@ function normalizeQuote(raw: Record<string, unknown>): NormalizedQuote {
   }
 }
 
+// The first quote for a token the aggregator has not indexed yet discovers its pools on-chain
+// (about 20s or more), so allow well beyond that before giving up.
+const QUOTE_TIMEOUT_MS = 60_000
+
 export async function getQuote(input: {
   tokenA: string
   tokenB: string
@@ -312,7 +416,8 @@ export async function getQuote(input: {
           dexId: 'ALL_BASE',
         }),
       },
-      20_000,
+      QUOTE_TIMEOUT_MS,
+      'Finding liquidity for a newly added token can take up to a minute the first time. Try again in a moment.',
     ),
   )
   return { raw: body, quote: normalizeQuote(body) }
